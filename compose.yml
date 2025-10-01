@@ -1,0 +1,64 @@
+services:
+  vllm:
+    build:
+      context: vllm
+      dockerfile: Dockerfile
+    image: vllm:latest
+    container_name: vllm
+    command: serve openai/gpt-oss-20b -tp 1 --tool-call-parser openai --reasoning-parser openai_gptoss --enable-auto-tool-choice --host 0.0.0.0 --port 8888 --max-model-len 131072 --gpu-memory-utilization 0.90 --served-model-name gpt-oss-20b --api-key my-key
+    ports:
+      - 8888:8888
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/metrics"]
+      interval: 5s          # run every 5 seconds
+      timeout: 2s           # give each probe 2 s to answer
+      retries: 6            # 6 × 5 s = 30 s before considered unhealthy
+      start_period: 10s     # give the container a little warm‑up time
+  spectrum_server:
+    build:
+      context: spectrum_server
+      dockerfile: Dockerfile
+    image: spectrum_server:latest
+    container_name: spectrum_server
+    command: ["python", "-m", "spectrum_server"]
+    env_file:
+      - env.example
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 6
+      start_period: 10s
+  agent:
+    build:
+      context: agent
+      dockerfile: Dockerfile
+    image: agent:latest
+    container_name: agent
+    command: ["--server"]
+    ports:
+      - 8001:8001
+    env_file:
+      - env.example
+    volumes:
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    depends_on:
+      vllm:
+        condition: service_healthy
+      spectrum_server:
+        condition: service_healthy
+  mongodb:
+    image: mongo:8.0
+    ports:
+      - 27018:27018      
+    command: mongod --port 27018    
+

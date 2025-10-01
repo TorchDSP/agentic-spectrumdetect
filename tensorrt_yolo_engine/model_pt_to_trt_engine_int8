@@ -1,0 +1,98 @@
+#!/bin/bash
+
+#---------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------
+
+# find the full path to the "yolo" executable
+function find_yolo
+{
+    local yolo_path=""
+    
+    yolo_path=$(which yolo 2> /dev/null | grep "/bin")
+    if [ -z "$yolo_path" ];
+    then
+        yolo_path=$(find /usr -name yolo 2> /dev/null | grep "/bin")
+    fi
+
+    echo $yolo_path
+}
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+# find the full path to the "trtexec" executable
+function find_trtexec
+{
+    local trtexec_path=""
+
+    trtexec_path=$(which trtexec 2> /dev/null | grep "tensorrt/bin")
+    if [ -z "$trtexec_path" ];
+    then
+        trtexec_path=$(find /usr -name trtexec 2> /dev/null | grep "tensorrt/bin")
+    fi
+
+    echo $trtexec_path
+}
+
+#-- entry point ------------------------------------------------------------------------------------------------------------
+
+echo ""
+
+if [[ "$#" -lt 1 || "$#" -gt 2 ]];
+then
+    echo "USAGE: ./model_pt_to_trt_engine_int8 [pytorch-model] [gpu]"
+    echo ""
+    echo "  * [gpu] is optional and defaults to 0"
+else
+
+    echo -n ">> LOOKING FOR YOLO EXECUTABLE \"yolo\" "
+    yolo_path=$(find_yolo)
+
+    if [ -z "$yolo_path" ];
+    then
+        echo "[NOT FOUND]"
+        exit 1
+    else
+        echo "[FOUND] => "$yolo_path
+    fi
+
+    echo -n ">> LOOKING FOR TENSORRT EXECUTABLE \"trtexec\" "
+    trtexec_path=$(find_trtexec)
+
+    if [ -z "$trtexec_path" ];
+    then
+        echo "[NOT FOUND]"
+        exit 1
+    else
+        echo "[FOUND] => "$trtexec_path
+    fi
+
+    if [ "$#" -eq 2 ]; then gpu=$2
+    else                    gpu=0
+    fi
+
+    base_filename="${1%.*}"
+
+    onnx_model_name=$base_filename".onnx"
+    trt_engine_cali=$base_filename".cache"
+    trt_engine_name=$base_filename".int8.gpu"$gpu".engine"
+
+    yolo_cmd=$yolo_path" export model="$1" device="$gpu" format=engine dynamic=False batch=1 imgsz=1024,1024 int8=True"
+    echo ""
+    $yolo_cmd
+    echo ""
+
+    yolo_cmd=$yolo_path" export model="$1" device="$gpu" format=onnx dynamic=False simplify=True imgsz=1024,1024 opset=12"
+    echo ""
+    $yolo_cmd
+    echo ""
+
+    trtexec_cmd=$trtexec_path" --onnx="$onnx_model_name" --saveEngine="$trt_engine_name" --device="$gpu" --int8 --calib="$trt_engine_cali
+    echo ""
+    $trtexec_cmd
+
+fi
+
+echo ""
+
+#---------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------

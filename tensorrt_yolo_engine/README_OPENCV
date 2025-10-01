@@ -1,0 +1,39 @@
+## install dependencies
+
+sudo apt update
+sudo apt install -y libgtk2.0-dev
+
+## clone opencv-contrib
+
+> git clone https://github.com/opencv/opencv_contrib.git
+> cd opencv_contrib
+> git checkout 4.x
+> cd ..
+
+## clone opencv
+
+> git clone https://github.com/opencv/opencv.git
+> cd opencv
+> git checkout 4.x
+
+## cmake command for building opencv with cuda enabled
+##
+## refer to this link for a list of NVIDIA GPUs, including compute capabilities
+##   * https://developer.nvidia.com/cuda-gpus
+
+> mkdir build
+> cd build
+
+> export CUDA_COMPUTE_CAPABILITY=x.x  <<< NEED TO SET THIS
+> export PATH_TO_CUDA=/path/to/cuda   <<< NEED TO SET THIS
+
+> cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON \
+        -DWITH_TBB=ON -DCUDA_FAST_MATH=1 -DOPENCV_ENABLE_NONFREE=ON -DENABLE_FAST_MATH=1 -DWITH_CUBLAS=1 \
+        -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules -DCUDA_ARCH_BIN=$CUDA_COMPUTE_CAPABILITY \
+        -DCUDA_TOOLKIT_ROOT_DIR=$PATH_TO_CUDA ..
+
+## build and install opencv
+
+> make (long build...consider using the -j option)
+> sudo make install
+> sudo ldconfig /usr/local/lib

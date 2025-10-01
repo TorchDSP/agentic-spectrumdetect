@@ -1,0 +1,94 @@
+#!/bin/bash
+
+#---------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------
+
+display_help()
+{
+    printf "\n"
+    printf "USAGE: ./do_run_cmake -t [TARGET] -c [CUDA-PATH] -v -h\n"
+    printf "\n"
+    printf "  [-t] [REQUIRED] Target to build\n"
+    printf "  [-c] [REQUIRED] Path to CUDA\n"
+    printf "  [-v] [OPTIONAL] When set, verbose logging will be enabled\n"
+    printf "  [-h] [OPTIONAL] Display help\n"
+    printf "\n"
+    printf "TARGET [-t] OPTIONS\n"
+    printf "\n"
+    printf "  > tye_sp => TYE stream processor\n"
+    printf "  > tye_fp => TYE file processor\n"
+    printf "\n"
+}
+
+#---------------------------------------------------------------------------------------------------------------------------
+
+BUILD_TARGET=""
+CUDA_PATH=""
+WITH_VERBOSE_LOGGING="WITH_VERBOSE_LOGGING=False"
+
+build_with_verbose_logging=false
+do_display_help=false
+
+while getopts "t:c:vh" opt;
+do
+    case ${opt} in
+
+        t) build_target="$OPTARG"
+           ;;
+
+        c) CUDA_PATH="CUDA_TOOLKIT_ROOT_DIR=$OPTARG"
+           ;;
+
+        v) build_with_verbose_logging=true
+           ;;
+
+        h) do_display_help=true
+           ;;
+
+    esac
+done
+
+if [ "${do_display_help}" = true ];
+then
+    display_help
+    exit
+fi
+
+if   [ "${build_target}" == "tye_sp" ]; then BUILD_TARGET="BUILD_TARGET=TYE_STREAM_PROCESSOR"
+elif [ "${build_target}" == "tye_fp" ]; then BUILD_TARGET="BUILD_TARGET=TYE_FILE_PROCESSOR"
+else
+    display_help
+    exit
+fi
+
+if [ -z "${CUDA_PATH}" ];
+then
+    display_help
+    exit
+fi
+
+printf "\n"
+
+if   [ "${build_target}" == "tye_sp" ]; then printf "[OK] Build target => TYE STREAM PROCESSOR\n"
+elif [ "${build_target}" == "tye_fp" ]; then printf "[OK] Build target => TYE FILE PROCESSOR\n"
+fi
+
+if [ "${build_with_verbose_logging}" = true ];
+then
+    WITH_VERBOSE_LOGGING="WITH_VERBOSE_LOGGING=ON"
+    printf "[OK] Verbose logging => ENABLED\n"
+else
+    printf "[OK] Verbose logging => DISABLED\n"
+fi
+
+printf "\n"
+sleep 2
+
+rm -fR build
+mkdir build
+cd build
+
+cmake -D$CUDA_PATH -D$BUILD_TARGET -D$WITH_VERBOSE_LOGGING ../
+
+#---------------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------------

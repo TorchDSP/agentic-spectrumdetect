@@ -1,0 +1,25 @@
+[project]
+name = "spectrum_server"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[all]>=0.116.1",
+    "fastmcp==2.10.6",
+    "pydantic>=2.11.7",
+    "uvicorn>=0.35.0",
+    "pymongo",
+    "psutil"
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.7",
+    "mypy",
+    "types-psutil",
+]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
